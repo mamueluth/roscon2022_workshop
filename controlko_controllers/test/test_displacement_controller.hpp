@@ -36,7 +36,8 @@
 
 // TODO(anyone): replace the state and command message types
 using ControllerStateMsg = controlko_controllers::DisplacementController::ControllerStateMsg;
-using ControllerReferenceMsg = controlko_controllers::DisplacementController::ControllerReferenceMsg;
+using ControllerReferenceMsg =
+  controlko_controllers::DisplacementController::ControllerReferenceMsg;
 using ControllerModeSrvType = controlko_controllers::DisplacementController::ControllerModeSrvType;
 
 namespace
@@ -61,7 +62,8 @@ public:
   {
     auto ret = controlko_controllers::DisplacementController::on_configure(previous_state);
     // Only if on_configure is successful create subscription
-    if (ret == CallbackReturn::SUCCESS) {
+    if (ret == CallbackReturn::SUCCESS)
+    {
       ref_subscriber_wait_set_.add_subscription(ref_subscriber_);
     }
     return ret;
@@ -79,7 +81,8 @@ public:
     const std::chrono::milliseconds & timeout = std::chrono::milliseconds{500})
   {
     bool success = subscriber_wait_set.wait(timeout).kind() == rclcpp::WaitResultKind::Ready;
-    if (success) {
+    if (success)
+    {
       executor.spin_some();
     }
     return success;
@@ -132,8 +135,9 @@ protected:
     command_itfs_.reserve(joint_command_values_.size());
     command_ifs.reserve(joint_command_values_.size());
 
-    for (size_t i = 0; i < joint_command_values_.size(); ++i) {
-      command_itfs_.emplace_back(hardware_interface::CommandInterface(
+    for (size_t i = 0; i < joint_command_values_.size(); ++i)
+    {
+      command_itfs_.emplace_back(std::make_shared<hardware_interface::CommandInterface>(
         joint_names_[i], interface_name_, &joint_command_values_[i]));
       command_ifs.emplace_back(command_itfs_.back());
     }
@@ -143,8 +147,9 @@ protected:
     state_itfs_.reserve(joint_state_values_.size());
     state_ifs.reserve(joint_state_values_.size());
 
-    for (size_t i = 0; i < joint_state_values_.size(); ++i) {
-      state_itfs_.emplace_back(hardware_interface::StateInterface(
+    for (size_t i = 0; i < joint_state_values_.size(); ++i)
+    {
+      state_itfs_.emplace_back(std::make_shared<hardware_interface::StateInterface>(
         joint_names_[i], interface_name_, &joint_state_values_[i]));
       state_ifs.emplace_back(state_itfs_.back());
     }
@@ -171,10 +176,12 @@ protected:
     int max_sub_check_loop_count = 5;  // max number of tries for pub/sub loop
     rclcpp::WaitSet wait_set;          // block used to wait on message
     wait_set.add_subscription(subscription);
-    while (max_sub_check_loop_count--) {
+    while (max_sub_check_loop_count--)
+    {
       controller_->update(rclcpp::Time(0), rclcpp::Duration::from_seconds(0.01));
       // check if message has been received
-      if (wait_set.wait(std::chrono::milliseconds(2)).kind() == rclcpp::WaitResultKind::Ready) {
+      if (wait_set.wait(std::chrono::milliseconds(2)).kind() == rclcpp::WaitResultKind::Ready)
+      {
         break;
       }
     }
@@ -191,10 +198,13 @@ protected:
     const std::vector<double> & displacements = {0.45},
     const std::vector<double> & velocities = {0.0}, const double duration = 1.25)
   {
-    auto wait_for_topic = [&](const auto topic_name) {
+    auto wait_for_topic = [&](const auto topic_name)
+    {
       size_t wait_count = 0;
-      while (command_publisher_node_->count_subscribers(topic_name) == 0) {
-        if (wait_count >= 5) {
+      while (command_publisher_node_->count_subscribers(topic_name) == 0)
+      {
+        if (wait_count >= 5)
+        {
           auto error_msg =
             std::string("publishing to ") + topic_name + " but no node subscribes to it";
           throw std::runtime_error(error_msg);
@@ -224,7 +234,8 @@ protected:
     bool wait_for_service_ret =
       slow_control_service_client_->wait_for_service(std::chrono::milliseconds(500));
     EXPECT_TRUE(wait_for_service_ret);
-    if (!wait_for_service_ret) {
+    if (!wait_for_service_ret)
+    {
       throw std::runtime_error("Services is not available!");
     }
     auto result = slow_control_service_client_->async_send_request(request);
@@ -243,8 +254,8 @@ protected:
   std::array<double, 1> joint_state_values_ = {1.1};
   std::array<double, 1> joint_command_values_ = {101.101};
 
-  std::vector<hardware_interface::StateInterface> state_itfs_;
-  std::vector<hardware_interface::CommandInterface> command_itfs_;
+  std::vector<std::shared_ptr<hardware_interface::StateInterface>> state_itfs_;
+  std::vector<std::shared_ptr<hardware_interface::CommandInterface>> command_itfs_;
 
   // Test related parameters
   std::unique_ptr<TestableDisplacementController> controller_;
